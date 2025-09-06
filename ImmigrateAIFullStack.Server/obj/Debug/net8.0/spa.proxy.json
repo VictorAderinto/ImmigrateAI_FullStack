@@ -1,0 +1,10 @@
+{
+"SpaProxyServer": {
+"ServerUrl": "https://localhost:56132",
+"RedirectUrl": "",
+"LaunchCommand": "npm run dev",
+"WorkingDirectory": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\..\\immigrateaifullstack.client",
+"MaxTimeoutInSeconds": "120",
+"KeepRunning": "false"
+}
+}

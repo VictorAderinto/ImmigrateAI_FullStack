@@ -1,0 +1,76 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F46DD8DD-D914-6F33-336D-15FD01BD1C1A}|immigrateaifullstack.client\\immigrateaifullstack.client.esproj|c:\\users\\victor\\downloads\\immigrateaifullstack\\immigrateaifullstack.client\\vite.config.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{F46DD8DD-D914-6F33-336D-15FD01BD1C1A}|immigrateaifullstack.client\\immigrateaifullstack.client.esproj|solutionrelative:immigrateaifullstack.client\\vite.config.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{82557DCB-43D2-4786-8A81-4B06EF8C5748}|ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj|c:\\users\\victor\\downloads\\immigrateaifullstack\\immigrateaifullstack.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{82557DCB-43D2-4786-8A81-4B06EF8C5748}|ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj|solutionrelative:immigrateaifullstack.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 291,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            }
+          ]
+        },
+        {
+          "DockedHeight": 237,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "vite.config.ts",
+              "DocumentMoniker": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\immigrateaifullstack.client\\vite.config.ts",
+              "RelativeDocumentMoniker": "immigrateaifullstack.client\\vite.config.ts",
+              "ToolTip": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\immigrateaifullstack.client\\vite.config.ts",
+              "RelativeToolTip": "immigrateaifullstack.client\\vite.config.ts",
+              "ViewState": "AgIAACEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-06-19T02:29:54.218Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\Program.cs",
+              "RelativeDocumentMoniker": "ImmigrateAIFullStack.Server\\Program.cs",
+              "ToolTip": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\Program.cs",
+              "RelativeToolTip": "ImmigrateAIFullStack.Server\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-14T06:53:28.195Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

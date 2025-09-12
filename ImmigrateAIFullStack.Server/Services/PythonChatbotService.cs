@@ -17,6 +17,7 @@ namespace ImmigrateAIFullStack.Server.Services
             _httpClient.BaseAddress = new Uri("http://localhost:5000"); // Flask API
         }
 
+
         public class ChatInitResponse
         {
             public string conversation_id { get; set; } = string.Empty;
@@ -39,15 +40,28 @@ namespace ImmigrateAIFullStack.Server.Services
             public bool done { get; set; }
         }
 
-        public async Task<ChatInitResponse?> InitializeChatAsync()
+        public async Task<ChatInitResponse?> InitializeChatAsync(string conversationId)
         {
             try
             {
-                _logger.LogInformation("Calling Python API /initialize");
-                var response = await _httpClient.PostAsync("/initialize", null);
+                _logger.LogInformation("Calling Python API /initialize with conversation ID: {ConversationId}", conversationId);
+                
+                var requestBody = new { conversation_id = conversationId };
+                var response = await _httpClient.PostAsJsonAsync("/initialize", requestBody);
                 _logger.LogInformation("Python API /initialize response status: {StatusCode}", response.StatusCode);
                 
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogWarning("Python API is not ready yet, returning null");
+                    return null;
+                }
+                
                 response.EnsureSuccessStatusCode();
+                
+                // Log raw response before deserialization
+                var rawResponse = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("Python API /initialize RAW response: {RawResponse}", rawResponse);
+                
                 var result = await response.Content.ReadFromJsonAsync<ChatInitResponse>();
                 _logger.LogInformation("Python API /initialize response parsed successfully - conversation_id: {ConversationId}", 
                     result?.conversation_id);
@@ -74,6 +88,12 @@ namespace ImmigrateAIFullStack.Server.Services
                 _logger.LogInformation("Calling Python API /chat-step for conversation: {ConversationId}", conversationId);
                 var response = await _httpClient.PostAsJsonAsync("/chat-step", request);
                 _logger.LogInformation("Python API /chat-step response status: {StatusCode}", response.StatusCode);
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogWarning("Python API is not ready yet, returning null");
+                    return null;
+                }
                 
                 response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<ChatStepResponse>();

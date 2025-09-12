@@ -173,3 +173,14 @@ C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\D
 C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\trainning\immigration_data_reduced.json
 C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\trainning\questions_file_updated.json
 C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\trainning\training_data.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_0104e\HelloWorld.deps.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_0104e\HelloWorld.runtimeconfig.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_1294e\HelloWorld.deps.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_1294e\HelloWorld.runtimeconfig.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_5406e\HelloWorld.deps.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_5406e\HelloWorld.runtimeconfig.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_5409e\HelloWorld.deps.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_5409e\HelloWorld.runtimeconfig.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_5646e\HelloWorld.deps.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\bin\Debug\net8.0\PythonChatbotAPI\others\publish_5646e\HelloWorld.runtimeconfig.json
+C:\Users\Victor\Downloads\ImmigrateAIFullStack\ImmigrateAIFullStack.Server\obj\Debug\net8.0\ImmigrateAIFullStack.Server.sourcelink.json

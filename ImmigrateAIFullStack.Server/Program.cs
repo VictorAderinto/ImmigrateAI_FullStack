@@ -53,6 +53,17 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Ensure database is created and migrated on startup
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ImmigrateAIFullStack.Server.Models.AppDbContext>();
+    context.Database.EnsureCreated();
+    
+    // Log startup status
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Database initialized successfully");
+}
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

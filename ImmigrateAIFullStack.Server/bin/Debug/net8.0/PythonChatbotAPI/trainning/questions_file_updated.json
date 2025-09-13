@@ -392,12 +392,12 @@
   {
     "position": 78,
     "field": "primary_phone_country_code",
-    "text": "What is the country code of your primary phone number?"
+    "text": "What is the country code of your primary phone number (e.g. 1 for USA, 44 for UK)?"
   },
   {
     "position": 79,
     "field": "primary_phone_number",
-    "text": "What is your primary phone number?"
+    "text": "What is your primary phone number (e.g. 1234567890)?"
   },
   {
     "position": 80,
@@ -422,12 +422,12 @@
   {
     "position": 84,
     "field": "alternate_phone_country_code",
-    "text": "What is the country code of your alternate phone number?"
+    "text": "What is the country code of your alternate phone number (e.g. 1 for USA, 44 for UK)?"
   },
   {
     "position": 85,
     "field": "alternate_phone_number",
-    "text": "What is your alternate phone number?"
+    "text": "What is your alternate phone number (e.g. 1234567890)?"
   },
   {
     "position": 86,

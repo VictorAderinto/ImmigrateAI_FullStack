@@ -41,6 +41,10 @@ namespace ImmigrateAIFullStack.Server.Controllers
             {
                 var userId = GetCurrentUserId();
                 
+                _logger.LogInformation("=== INITIALIZE CHAT CALLED ===");
+                _logger.LogInformation("User ID: {UserId}", userId);
+                _logger.LogInformation("Request timestamp: {Timestamp}", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+                
                 // Check for existing incomplete conversation
                 var existingConversation = await _context.Conversations
                     .Where(c => c.UserId == userId && !c.IsCompleted)
@@ -48,73 +52,173 @@ namespace ImmigrateAIFullStack.Server.Controllers
                 
                 if (existingConversation != null)
                 {
+                    _logger.LogInformation("Found existing incomplete conversation: {ConversationId}", existingConversation.ConversationID);
                     // Get the next question for existing conversation
                     var currentState = existingConversation.GetState();
                     var stateJson = JsonSerializer.SerializeToElement(currentState);
                     
                     // Call Python service to get next question with empty input
-                    var nextQuestionResponse = await _chatbotService.ProcessChatStepAsync(existingConversation.ConversationID.ToString(), "", stateJson);
-                    if (nextQuestionResponse != null)
+                    try
                     {
-                        // Update conversation with new state
-                        var state = Conversation.FromJsonElement(nextQuestionResponse.state);
-                        existingConversation.UpdateState(state);
-                        existingConversation.IsCompleted = nextQuestionResponse.done;
-                        
-                        if (nextQuestionResponse.done)
+                        var nextQuestionResponse = await _chatbotService.ProcessChatStepAsync(existingConversation.ConversationID.ToString(), "", stateJson);
+                        if (nextQuestionResponse != null)
                         {
-                            existingConversation.CompletedAt = DateTime.UtcNow;
+                            _logger.LogInformation("Existing conversation - Python processed with ID: {ConversationId}", existingConversation.ConversationID);
+                            
+                            // Update conversation with new state
+                            var state = Conversation.FromJsonElement(nextQuestionResponse.state);
+                            existingConversation.UpdateState(state);
+                            existingConversation.IsCompleted = nextQuestionResponse.done;
+                            
+                            if (nextQuestionResponse.done)
+                            {
+                                existingConversation.CompletedAt = DateTime.UtcNow;
+                            }
+                            
+                            await _context.SaveChangesAsync();
+                            
+                            return Ok(new { 
+                                conversation_id = existingConversation.ConversationID,
+                                reply = nextQuestionResponse.reply,
+                                state = nextQuestionResponse.state,
+                                done = nextQuestionResponse.done
+                            });
                         }
-                        
-                        await _context.SaveChangesAsync();
-                        
-                        return Ok(new { 
-                            conversation_id = existingConversation.ConversationID,
-                            reply = nextQuestionResponse.reply,
-                            state = nextQuestionResponse.state,
-                            done = nextQuestionResponse.done
-                        });
                     }
-                }
-                
-                // Create new conversation
-                var newConversationId = Guid.NewGuid();
-                
-                var newConversation = new Conversation
-                {
-                    ConversationID = newConversationId,
-                    UserId = userId,
-                    CreatedAt = DateTime.UtcNow,
-                    IsCompleted = false,
-                    QuestionIndex = 0,
-                    Skip = 0,
-                    Answers = "{}",
-                    ChatMessagesJson = "[]",
-                    AttemptCounter = "{}"
-                };
-                
-                await _context.Conversations.AddAsync(newConversation);
-                await _context.SaveChangesAsync();
-                
-                // Get initial response from Python service
-                var response = await _chatbotService.InitializeChatAsync();
-                if (response != null)
-                {
-                    // Update conversation with initial state
-                    var state = Conversation.FromJsonElement(response.state);
-                    newConversation.UpdateState(state);
-                    await _context.SaveChangesAsync();
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Python service unavailable for existing conversation, using fallback");
+                    }
                     
-                    // Return our conversation ID, not Python's
+                    // If Python service fails, return current state
                     return Ok(new { 
-                        conversation_id = newConversationId,
-                        reply = response.reply,
-                        state = response.state,
-                        done = response.done
+                        conversation_id = existingConversation.ConversationID,
+                        reply = "Welcome back! Please continue with your application.",
+                        state = JsonSerializer.SerializeToElement(currentState),
+                        done = existingConversation.IsCompleted
                     });
                 }
                 
-                return BadRequest("Failed to initialize chat");
+                _logger.LogInformation("No existing conversation found, creating new one");
+                
+                // Use database transaction to ensure atomicity
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    // Create new conversation
+                    var newConversationId = Guid.NewGuid();
+                    _logger.LogInformation("Creating new conversation with ID: {ConversationId}", newConversationId);
+                    
+                    var newConversation = new Conversation
+                    {
+                        ConversationID = newConversationId,
+                        UserId = userId,
+                        CreatedAt = DateTime.UtcNow,
+                        IsCompleted = false,
+                        QuestionIndex = 0,
+                        Skip = 0,
+                        Answers = "{}",
+                        ChatMessagesJson = "[]",
+                        AttemptCounter = "{}"
+                    };
+                    
+                    await _context.Conversations.AddAsync(newConversation);
+                    
+                    // Get initial response from Python service
+                    string reply = "Welcome! Let's start your immigration application.";
+                    ConversationState finalState;
+                    
+                    try
+                    {
+                        var response = await _chatbotService.InitializeChatAsync(newConversationId.ToString());
+                        if (response != null)
+                        {
+                            _logger.LogInformation("Python service returned conversation_id: {PythonConversationId}, should match our ID: {OurConversationId}", 
+                                response.conversation_id, newConversationId);
+                            
+                            // Verify conversation IDs match
+                            if (response.conversation_id != newConversationId.ToString())
+                            {
+                                _logger.LogWarning("Conversation ID mismatch! Python: {PythonId}, Our: {OurId}", 
+                                    response.conversation_id, newConversationId);
+                            }
+                            
+                            // Log the raw state from Python before deserialization
+                            _logger.LogInformation("Python state (raw): {RawState}", response.state.GetRawText());
+                            
+                            // Update conversation with initial state
+                            var state = Conversation.FromJsonElement(response.state);
+                            
+                            // Log the deserialized state
+                            _logger.LogInformation("Deserialized state - answers count: {AnswersCount}", state.answers?.Count ?? 0);
+                            _logger.LogInformation("Deserialized state - messages count: {MessagesCount}", state.messages?.Count ?? 0);
+                            _logger.LogInformation("Deserialized state - question_index: {QuestionIndex}", state.question_index);
+                            _logger.LogInformation("Deserialized state - skip: {Skip}", state.skip);
+                            _logger.LogInformation("Deserialized state - attempt_counter count: {AttemptCounterCount}", state.attempt_counter?.Count ?? 0);
+                            
+                            newConversation.UpdateState(state);
+                            reply = response.reply;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Python service failed for new conversation. Exception details: {ExceptionMessage}", ex.Message);
+                        _logger.LogError("Python service stack trace: {StackTrace}", ex.StackTrace);
+                        _logger.LogWarning("Python service unavailable for new conversation, using fallback");
+                        
+                        // Log current conversation state after Python failure
+                        var stateAfterFailure = newConversation.GetState();
+                        _logger.LogInformation("Conversation state after Python failure - Answers: {Answers}, Messages count: {MessagesCount}, QuestionIndex: {QuestionIndex}", 
+                            newConversation.Answers, stateAfterFailure.messages?.Count ?? 0, stateAfterFailure.question_index);
+                    }
+                    
+                    // Only set basic initial state if Python service completely failed AND we have no valid state
+                    var currentState = newConversation.GetState();
+                    if (newConversation.Answers == "{}" && 
+                        (currentState.messages == null || currentState.messages.Count == 0) &&
+                        currentState.question_index == 0)
+                    {
+                        _logger.LogInformation("Python service failed and no valid state found, setting basic initial state for conversation: {ConversationId}", newConversationId);
+                        var initialState = new ConversationState
+                        {
+                            answers = new Dictionary<string, string>(),
+                            messages = new List<ChatMessage>(),
+                            question_index = 0,
+                            skip = 0,
+                            attempt_counter = new Dictionary<string, int>()
+                        };
+                        newConversation.UpdateState(initialState);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Python service succeeded or valid state exists for conversation: {ConversationId}. Answers count: {AnswersCount}, Messages count: {MessagesCount}", 
+                            newConversationId, currentState.answers?.Count ?? 0, currentState.messages?.Count ?? 0);
+                    }
+                    
+                    // Save all changes within the transaction
+                    await _context.SaveChangesAsync();
+                    
+                    // Commit the transaction - now other connections can see the complete state
+                    await transaction.CommitAsync();
+                    
+                    // Get the final state for response
+                    finalState = newConversation.GetState();
+                    
+                    _logger.LogInformation("Returning conversation ID: {ConversationId} to frontend", newConversationId);
+                    
+                    return Ok(new { 
+                        conversation_id = newConversationId,
+                        reply = reply,
+                        state = JsonSerializer.SerializeToElement(finalState),
+                        done = false
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Failed to initialize conversation for UserId: {UserId}", userId);
+                    throw;
+                }
             }
             catch (Exception ex)
             {
@@ -154,12 +258,65 @@ namespace ImmigrateAIFullStack.Server.Controllers
                 // Get current state
                 var currentState = conversation.GetState();
                 
+                // Log current state before sending to Python service
+                _logger.LogInformation("=== PYTHON SERVICE DEBUG - BEFORE ===");
+                _logger.LogInformation("Conversation ID: {ConversationId}", request.conversation_id);
+                _logger.LogInformation("User Input: {UserInput}", request.user_input);
+                _logger.LogInformation("Current State - Answers Count: {AnswersCount}", currentState.answers?.Count ?? 0);
+                _logger.LogInformation("Current State - Answers: {Answers}", JsonSerializer.Serialize(currentState.answers));
+                _logger.LogInformation("Current State - Question Index: {QuestionIndex}", currentState.question_index);
+                _logger.LogInformation("Current State - Skip: {Skip}", currentState.skip);
+                
                 // Send to Python service for processing
                 var response = await _chatbotService.ProcessChatStepAsync(request.conversation_id, request.user_input, JsonSerializer.SerializeToElement(currentState));
+                
+                // Log Python service response
+                _logger.LogInformation("=== PYTHON SERVICE DEBUG - RESPONSE ===");
+                if (response != null)
+                {
+                    _logger.LogInformation("Python Response - Reply: {Reply}", response.reply);
+                    _logger.LogInformation("Python Response - Done: {Done}", response.done);
+                    _logger.LogInformation("Python Response - State (Raw): {StateRaw}", response.state.GetRawText());
+                    
+                    // Log state details
+                    if (response.state.TryGetProperty("answers", out var answersElement))
+                    {
+                        var answersDict = JsonSerializer.Deserialize<Dictionary<string, string>>(answersElement.GetRawText());
+                        _logger.LogInformation("Python Response - Answers Count: {AnswersCount}", answersDict?.Count ?? 0);
+                        _logger.LogInformation("Python Response - Answers: {Answers}", JsonSerializer.Serialize(answersDict));
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Python Response - No 'answers' property found in state");
+                    }
+                    
+                    if (response.state.TryGetProperty("question_index", out var questionIndexElement))
+                    {
+                        _logger.LogInformation("Python Response - Question Index: {QuestionIndex}", questionIndexElement.GetInt32());
+                    }
+                    
+                    if (response.state.TryGetProperty("skip", out var skipElement))
+                    {
+                        _logger.LogInformation("Python Response - Skip: {Skip}", skipElement.GetInt32());
+                    }
+                }
+                else
+                {
+                    _logger.LogError("Python service returned null response");
+                }
+                
                 if (response != null)
                 {
                     // Update conversation with new state
                     var state = Conversation.FromJsonElement(response.state);
+                    
+                    // Log state after deserialization
+                    _logger.LogInformation("=== PYTHON SERVICE DEBUG - AFTER DESERIALIZATION ===");
+                    _logger.LogInformation("Deserialized State - Answers Count: {AnswersCount}", state.answers?.Count ?? 0);
+                    _logger.LogInformation("Deserialized State - Answers: {Answers}", JsonSerializer.Serialize(state.answers));
+                    _logger.LogInformation("Deserialized State - Question Index: {QuestionIndex}", state.question_index);
+                    _logger.LogInformation("Deserialized State - Skip: {Skip}", state.skip);
+                    
                     conversation.UpdateState(state);
                     conversation.IsCompleted = response.done;
                     
@@ -169,6 +326,15 @@ namespace ImmigrateAIFullStack.Server.Controllers
                     }
                     
                     await _context.SaveChangesAsync();
+                    
+                    // Log final state after database save
+                    _logger.LogInformation("=== PYTHON SERVICE DEBUG - AFTER DATABASE SAVE ===");
+                    var finalState = conversation.GetState();
+                    _logger.LogInformation("Final State - Answers Count: {AnswersCount}", finalState.answers?.Count ?? 0);
+                    _logger.LogInformation("Final State - Answers: {Answers}", JsonSerializer.Serialize(finalState.answers));
+                    _logger.LogInformation("Final State - Question Index: {QuestionIndex}", finalState.question_index);
+                    _logger.LogInformation("Final State - Skip: {Skip}", finalState.skip);
+                    _logger.LogInformation("=== END PYTHON SERVICE DEBUG ===");
                     
                     return Ok(response);
                 }
@@ -334,20 +500,75 @@ namespace ImmigrateAIFullStack.Server.Controllers
             {
                 var userId = GetCurrentUserId();
                 
+                _logger.LogInformation("=== GET CURRENT ANSWERS DEBUG ===");
+                _logger.LogInformation("User ID: {UserId}", userId);
+                
                 var conversation = await _context.Conversations
                     .Where(c => c.UserId == userId && !c.IsCompleted)
                     .FirstOrDefaultAsync();
                 
                 if (conversation == null)
                 {
+                    _logger.LogWarning("No active conversation found for user: {UserId}", userId);
                     return NotFound("No active conversation found");
                 }
                 
+                _logger.LogInformation("Found conversation ID: {ConversationId}", conversation.ConversationID);
+                _logger.LogInformation("Conversation Answers (Raw): {AnswersRaw}", conversation.Answers);
+                
                 var answers = conversation.GetAnswers();
+                _logger.LogInformation("Parsed answers count: {AnswersCount}", answers?.Count ?? 0);
+                _logger.LogInformation("Parsed answers: {Answers}", JsonSerializer.Serialize(answers));
+                _logger.LogInformation("=== END GET CURRENT ANSWERS DEBUG ===");
+                
                 return Ok(answers);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error in GetCurrentAnswers for UserId: {UserId}", GetCurrentUserId());
+                return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            }
+        }
+
+        [HttpGet("conversation/{conversationId}/answers")]
+        public async Task<IActionResult> GetAnswers(string conversationId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                
+                if (!Guid.TryParse(conversationId, out var conversationGuid))
+                {
+                    return BadRequest("Invalid conversation_id format");
+                }
+                
+                _logger.LogInformation("=== GET SPECIFIC ANSWERS DEBUG ===");
+                _logger.LogInformation("User ID: {UserId}", userId);
+                _logger.LogInformation("Conversation ID: {ConversationId}", conversationId);
+                
+                var conversation = await _context.Conversations
+                    .Where(c => c.UserId == userId && c.ConversationID == conversationGuid)
+                    .FirstOrDefaultAsync();
+                
+                if (conversation == null)
+                {
+                    _logger.LogWarning("Conversation not found: {ConversationId} for user: {UserId}", conversationId, userId);
+                    return NotFound("Conversation not found");
+                }
+                
+                _logger.LogInformation("Found conversation ID: {ConversationId}", conversation.ConversationID);
+                _logger.LogInformation("Conversation Answers (Raw): {AnswersRaw}", conversation.Answers);
+                
+                var answers = conversation.GetAnswers();
+                _logger.LogInformation("Parsed answers count: {AnswersCount}", answers?.Count ?? 0);
+                _logger.LogInformation("Parsed answers: {Answers}", JsonSerializer.Serialize(answers));
+                _logger.LogInformation("=== END GET SPECIFIC ANSWERS DEBUG ===");
+                
+                return Ok(answers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetAnswers for conversation: {ConversationId}", conversationId);
                 return StatusCode(500, new { error = "Internal server error", message = ex.Message });
             }
         }

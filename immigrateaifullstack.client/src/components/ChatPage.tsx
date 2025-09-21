@@ -21,9 +21,16 @@ const ChatPage: React.FC = () => {
   const [generatedFiles, setGeneratedFiles] = useState<string[]>([]); // Store generated PDF files
   const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar state
   
-  // Timer state
-  const [timeRemaining, setTimeRemaining] = useState(45 * 60); // 45 minutes in seconds
-  const [timerActive, setTimerActive] = useState(false);
+  // Timer state - calculated based on questions answered
+  const calculateTimeRemaining = () => {
+    if (!chatState || !chatState.question_index) return 45 * 60; // Default 45 minutes
+    const questionsAnswered = chatState.question_index;
+    const timeUsed = questionsAnswered * 15; // 15 seconds per question
+    return Math.max(0, (45 * 60) - timeUsed); // 45 minutes minus time used
+  };
+  
+  const timeRemaining = calculateTimeRemaining();
+  const timerActive = !isChatComplete && timeRemaining > 0;
 
   // Check authentication on component mount
   useEffect(() => {
@@ -82,26 +89,24 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  // Timer functions
-  const startTimer = () => {
-    setTimerActive(true);
+  // Timer functions - now calculated dynamically based on question_index
+  const handleQuestionAnswered = () => {
+    // Timer is now calculated automatically based on question_index
+    // No need to manually update timer state
   };
 
-  // Update timer when questions are answered
-  const handleQuestionAnswered = () => {
-    setTimeRemaining(prev => {
-      const newTime = Math.max(0, prev - 15); // Subtract 15 seconds (0.25 minutes)
-      if (newTime === 0) {
-        setTimerActive(false);
-        // Show time up message
+  // Show time up message when timer reaches 0
+  useEffect(() => {
+    if (timeRemaining === 0 && !isChatComplete && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage.content.includes("Time's up")) {
         setMessages(msgs => [
           ...msgs,
           { sender: "AI", content: "⏰ Time's up! The interview session has ended. You can still review and edit your answers, or start a new session." }
         ]);
       }
-      return newTime;
-    });
-  };
+    }
+  }, [timeRemaining, isChatComplete, messages]);
 
   // Note: Answers are now set directly from initialize response
   // No need for immediate fetchAnswers() call since we have transaction isolation
@@ -161,8 +166,7 @@ const ChatPage: React.FC = () => {
             console.log('Current answers dictionary:', initData.state.answers);
           }
           
-          // Start timer when chat initializes
-          startTimer();
+          // Timer is now calculated automatically based on question_index
         } else {
           console.error('Failed to initialize chat');
         }
@@ -378,10 +382,16 @@ const ChatPage: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="font-medium">{t("Estimated time remaining:")}</span>
-            <span className="font-bold text-red-600">
-              {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
-            </span>
-            <span className="text-gray-500">{t("minutes")}</span>
+            {timeRemaining > 0 ? (
+              <>
+                <span className="font-bold text-red-600">
+                  {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+                </span>
+                <span className="text-gray-500">{t("minutes")}</span>
+              </>
+            ) : (
+              <span className="font-bold text-red-600">{t("Time's up!")}</span>
+            )}
           </div>
           
           <div className="flex flex-col items-end gap-2">

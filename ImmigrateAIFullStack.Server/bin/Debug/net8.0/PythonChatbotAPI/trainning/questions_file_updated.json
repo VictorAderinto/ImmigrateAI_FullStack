@@ -171,7 +171,7 @@
   },
   {
     "position": 34,
-    "field": "partner_dob",
+    "field": "partner_dob_date",
     "text": "What is your spouse/common-law/conjugal partner's date of birth? (Format: YYYY-MM-DD)"
   },
   {
@@ -246,7 +246,7 @@
   },
   {
     "position": 49,
-    "field": "previous_partner_dob",
+    "field": "previous_partner_dob_date",
     "text": "What is the date of birth of your previous spouse or common-law partner? (Format: YYYY-MM-DD)"
   },
   {
@@ -851,7 +851,7 @@
   },
   {
     "position": 170,
-    "field": "parent1_dob",
+    "field": "parent1_dob_date",
     "text": "What is the date of birth of Parent 1? (Format: YYYY-MM-DD)"
   },
   {
@@ -891,7 +891,7 @@
   },
   {
     "position": 178,
-    "field": "parent2_dob",
+    "field": "parent2_dob_date",
     "text": "What is the date of birth of Parent 2? (Format: YYYY-MM-DD)"
   },
   {

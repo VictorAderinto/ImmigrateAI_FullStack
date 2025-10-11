@@ -46,8 +46,11 @@ namespace ImmigrateAIFullStack.Server.Controllers
                 _logger.LogInformation("Request timestamp: {Timestamp}", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"));
                 
                 // Check for existing incomplete conversation
+                // Prefer conversation with most answers (progress), then newest by CreatedAt
                 var existingConversation = await _context.Conversations
                     .Where(c => c.UserId == userId && !c.IsCompleted)
+                    .OrderByDescending(c => c.Answers != "{}" ? 1 : 0) // Prefer conversations with answers
+                    .ThenByDescending(c => c.CreatedAt) // Then prefer newest
                     .FirstOrDefaultAsync();
                 
                 if (existingConversation != null)

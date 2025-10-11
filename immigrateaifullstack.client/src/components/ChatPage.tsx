@@ -4,10 +4,13 @@ import { useTranslation } from "react-i18next";
 import { getAuthHeaders, isAuthenticated } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
 import AnswersSidebar from "./AnswersSidebar";
+import { useLanguage } from "../contexts/LanguageContext";
+import { translateText, detectLanguage } from "../utils/translationService";
 
 
 const ChatPage: React.FC = () => {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Array<{ sender: string; content: string }>>([]);
   const [input, setInput] = useState("");
@@ -20,13 +23,22 @@ const ChatPage: React.FC = () => {
   const [chatState, setChatState] = useState<any>(null); // Store the chat state
   const [generatedFiles, setGeneratedFiles] = useState<string[]>([]); // Store generated PDF files
   const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar state
+  const [isTranslating, setIsTranslating] = useState(false); // Translation loading state
   
   // Timer state - calculated based on questions answered
   const calculateTimeRemaining = () => {
-    if (!chatState || !chatState.question_index) return 45 * 60; // Default 45 minutes
-    const questionsAnswered = chatState.question_index;
-    const timeUsed = questionsAnswered * 15; // 15 seconds per question
-    return Math.max(0, (45 * 60) - timeUsed); // 45 minutes minus time used
+    const TOTAL_QUESTIONS = 253;
+    const TOTAL_TIME_MINUTES = 45;
+    
+    if (!chatState || chatState.question_index === undefined) {
+      return TOTAL_TIME_MINUTES * 60; // Default 45 minutes in seconds
+    }
+    
+    const questionsAnswered = chatState.question_index + 1; // +1 for 0-based indexing
+    const timeUsedMinutes = questionsAnswered * (TOTAL_TIME_MINUTES / TOTAL_QUESTIONS);
+    const timeLeftMinutes = TOTAL_TIME_MINUTES - timeUsedMinutes;
+    
+    return Math.max(0, Math.floor(timeLeftMinutes * 60)); // Convert to seconds
   };
   
   const timeRemaining = calculateTimeRemaining();
@@ -157,7 +169,21 @@ const ChatPage: React.FC = () => {
           console.log('Set conversation ID to:', initData.conversation_id);
           setIsChatComplete(initData.done || false);
           setChatState(initData.state); // Store the chat state
-          setMessages([{ sender: "AI", content: initData.reply }]);
+          
+          // Translate initial AI message if not in English
+          let initialReply = initData.reply;
+          if (language !== 'en') {
+            try {
+              initialReply = await translateText(initData.reply, language, 'en');
+              console.log('Translated initial AI message:', initData.reply, '→', initialReply);
+            } catch (error) {
+              console.error('Translation error for initial message:', error);
+              // Use original response if translation fails
+              initialReply = initData.reply;
+            }
+          }
+          
+          setMessages([{ sender: "AI", content: initialReply }]);
           
           // Set answers from initialize response - this is the source of truth
           if (initData.state && initData.state.answers) {
@@ -187,6 +213,7 @@ const ChatPage: React.FC = () => {
     
     const userMsg = { sender: "You", content: input.trim() };
     setMessages((msgs) => [...msgs, userMsg]);
+    const originalInput = input.trim();
     setInput("");
     setLoading(true);
 
@@ -216,15 +243,38 @@ const ChatPage: React.FC = () => {
       } else {
         // Send chat step
         console.log('=== CONVERSATION ID DEBUG - CHAT STEP ===');
-        console.log('Sending chat step - conversation ID:', conversationId, 'user input:', userMsg.content);
+        console.log('Sending chat step - conversation ID:', conversationId, 'user input:', originalInput);
         console.log('Current conversationId state:', conversationId);
+        console.log('Current language:', language);
+        
+        // Translate user input to English if not in English
+        let inputToSend = originalInput;
+        if (language !== 'en') {
+          setIsTranslating(true);
+          try {
+            // Detect the language of user input
+            const detectedLang = await detectLanguage(originalInput);
+            console.log('Detected language:', detectedLang);
+            
+            // If detected language matches selected language (and not English), translate to English
+            if (detectedLang === language) {
+              inputToSend = await translateText(originalInput, 'en', language);
+              console.log('Translated user input:', originalInput, '→', inputToSend);
+            }
+          } catch (error) {
+            console.error('Translation error for user input:', error);
+            // Continue with original input if translation fails
+          } finally {
+            setIsTranslating(false);
+          }
+        }
         
         const chatResponse = await fetch('/api/chat/chat-step', {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({
             conversation_id: conversationId,
-            user_input: userMsg.content,
+            user_input: inputToSend, // Send translated input
             state: chatState // Include the current chat state
           })
         });
@@ -247,10 +297,26 @@ const ChatPage: React.FC = () => {
           setChatState(chatData.state);
         }
         
+        // Translate AI response to user's language if not English
+        let aiReply = chatData.reply;
+        if (language !== 'en') {
+          setIsTranslating(true);
+          try {
+            aiReply = await translateText(chatData.reply, language, 'en');
+            console.log('Translated AI response:', chatData.reply, '→', aiReply);
+          } catch (error) {
+            console.error('Translation error for AI response:', error);
+            // Use original response if translation fails
+            aiReply = chatData.reply;
+          } finally {
+            setIsTranslating(false);
+          }
+        }
+        
         // Add the AI response
         setMessages((msgs) => [
           ...msgs,
-          { sender: "AI", content: chatData.reply }
+          { sender: "AI", content: aiReply }
         ]);
 
         // Track that a question was answered
@@ -266,7 +332,7 @@ const ChatPage: React.FC = () => {
       console.error('Chat error:', error);
       setMessages((msgs) => [
         ...msgs,
-        { sender: "AI", content: "Sorry, I encountered an error. Please try again." }
+        { sender: "AI", content: t("Sorry, I encountered an error. Please try again.") }
       ]);
     } finally {
       setLoading(false);
@@ -457,7 +523,7 @@ const ChatPage: React.FC = () => {
               </span>
               <div className="bg-gray-50 rounded-lg p-5 text-gray-800 text-base shadow-sm flex items-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                {t("Thinking...")}
+                {isTranslating ? "Translating..." : t("Thinking...")}
               </div>
             </div>
           )}

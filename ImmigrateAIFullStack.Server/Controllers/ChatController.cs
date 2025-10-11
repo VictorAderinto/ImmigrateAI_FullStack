@@ -46,8 +46,11 @@ namespace ImmigrateAIFullStack.Server.Controllers
                 _logger.LogInformation("Request timestamp: {Timestamp}", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"));
                 
                 // Check for existing incomplete conversation
+                // Prefer conversation with most answers (progress), then newest by CreatedAt
                 var existingConversation = await _context.Conversations
                     .Where(c => c.UserId == userId && !c.IsCompleted)
+                    .OrderByDescending(c => c.Answers != "{}" ? 1 : 0) // Prefer conversations with answers
+                    .ThenByDescending(c => c.CreatedAt) // Then prefer newest
                     .FirstOrDefaultAsync();
                 
                 if (existingConversation != null)
@@ -77,9 +80,33 @@ namespace ImmigrateAIFullStack.Server.Controllers
                             
                             await _context.SaveChangesAsync();
                             
+                            // Add initial instructions if this is the first question (question_index = 0)
+                            string reply = nextQuestionResponse.reply;
+                            if (currentState.question_index == 0)
+                            {
+                                string initialInstructions = @"🎯 Welcome to your Study Permit Application Assistant!
+
+I'll guide you through the application process step by step. Here's what you need to know:
+
+📋 **What to expect:**
+• I'll ask you questions about your personal information, education, and travel plans
+• You can ask me questions anytime by ending your message with a question mark (?)
+
+💡 **Tips for success:**
+• Answer honestly and completely
+• If you're unsure about something, ask me for clarification
+• Have your passport and educational documents ready
+• Take your time - there's no rush!
+
+Let's get started! 👇
+
+";
+                                reply = initialInstructions + nextQuestionResponse.reply;
+                            }
+                            
                             return Ok(new { 
                                 conversation_id = existingConversation.ConversationID,
-                                reply = nextQuestionResponse.reply,
+                                reply = reply,
                                 state = nextQuestionResponse.state,
                                 done = nextQuestionResponse.done
                             });
@@ -266,6 +293,7 @@ namespace ImmigrateAIFullStack.Server.Controllers
                 _logger.LogInformation("Current State - Answers: {Answers}", JsonSerializer.Serialize(currentState.answers));
                 _logger.LogInformation("Current State - Question Index: {QuestionIndex}", currentState.question_index);
                 _logger.LogInformation("Current State - Skip: {Skip}", currentState.skip);
+                _logger.LogInformation("Current State - Override Mode: {OverrideMode}", currentState.override_mode);
                 
                 // Send to Python service for processing
                 var response = await _chatbotService.ProcessChatStepAsync(request.conversation_id, request.user_input, JsonSerializer.SerializeToElement(currentState));
@@ -298,6 +326,11 @@ namespace ImmigrateAIFullStack.Server.Controllers
                     if (response.state.TryGetProperty("skip", out var skipElement))
                     {
                         _logger.LogInformation("Python Response - Skip: {Skip}", skipElement.GetInt32());
+                    }
+                    
+                    if (response.state.TryGetProperty("override_mode", out var overrideModeElement))
+                    {
+                        _logger.LogInformation("Python Response - Override Mode: {OverrideMode}", overrideModeElement.GetBoolean());
                     }
                 }
                 else

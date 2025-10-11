@@ -21,6 +21,7 @@ namespace ImmigrateAIFullStack.Server.Models
         public int QuestionIndex { get; set; } = 0;
         public int Skip { get; set; } = 0;
         public string AttemptCounter { get; set; } = "{}";
+        public bool OverrideMode { get; set; } = false;
 
         public User? User { get; set; }
 
@@ -65,7 +66,8 @@ namespace ImmigrateAIFullStack.Server.Models
                 messages = GetChatMessages(),
                 question_index = QuestionIndex,
                 skip = Skip,
-                attempt_counter = GetAttemptCounter()
+                attempt_counter = GetAttemptCounter(),
+                override_mode = OverrideMode // Read from database field
             };
         }
 
@@ -76,6 +78,7 @@ namespace ImmigrateAIFullStack.Server.Models
             QuestionIndex = state.question_index;
             Skip = state.skip;
             SetAttemptCounter(state.attempt_counter);
+            OverrideMode = state.override_mode; // Persist to database field
         }
 
         public static ConversationState FromJsonElement(JsonElement element)
@@ -107,6 +110,11 @@ namespace ImmigrateAIFullStack.Server.Models
                 state.attempt_counter = JsonSerializer.Deserialize<Dictionary<string, int>>(attemptCounterElement.GetRawText()) ?? new();
             }
             
+            if (element.TryGetProperty("override_mode", out var overrideModeElement))
+            {
+                state.override_mode = overrideModeElement.GetBoolean();
+            }
+            
             return state;
         }
     }
@@ -124,5 +132,6 @@ namespace ImmigrateAIFullStack.Server.Models
         public int question_index { get; set; } = 0;
         public int skip { get; set; } = 0;
         public Dictionary<string, int> attempt_counter { get; set; } = new();
+        public bool override_mode { get; set; } = false;
     }
 } 

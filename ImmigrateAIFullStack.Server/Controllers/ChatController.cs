@@ -692,11 +692,18 @@ Let's get started! 👇
                     return BadRequest("Conversation must be completed before downloading files");
                 }
                 
-                // Validate file name (security check)
-                if (string.IsNullOrEmpty(fileName) || fileName.Contains("..") || fileName.Contains("/") || fileName.Contains("\\"))
+                // URL decode the file name (ASP.NET Core should do this automatically, but be explicit)
+                var decodedFileName = Uri.UnescapeDataString(fileName);
+                
+                // Validate file name (security check) - check decoded name
+                if (string.IsNullOrEmpty(decodedFileName) || decodedFileName.Contains("..") || decodedFileName.Contains("/") || decodedFileName.Contains("\\"))
                 {
+                    _logger.LogWarning("Invalid file name detected: {FileName} (decoded: {DecodedFileName})", fileName, decodedFileName);
                     return BadRequest("Invalid file name");
                 }
+                
+                // Use decoded file name for file operations
+                fileName = decodedFileName;
                 
                 // Look for the file in the publish folders
                 var publishFolders = new[]
@@ -705,23 +712,30 @@ Let's get started! 👇
                     "PythonChatbotAPI/others/publish_1294e",
                     "PythonChatbotAPI/others/publish_5646e", 
                     "PythonChatbotAPI/others/publish_5409e",
-                    "PythonChatbotAPI/others/publish_0104e"
+                    "PythonChatbotAPI/others/publish_0104e",
+                    "PythonChatbotAPI/others/publish"
                 };
                 
                 string? filePath = null;
+                var currentDir = Directory.GetCurrentDirectory();
+                _logger.LogInformation("Searching for file: {FileName} in current directory: {CurrentDir}", fileName, currentDir);
+                
                 foreach (var folder in publishFolders)
                 {
-                    var fullPath = Path.Combine(Directory.GetCurrentDirectory(), folder, fileName);
+                    var fullPath = Path.Combine(currentDir, folder, fileName);
+                    _logger.LogInformation("Checking path: {FullPath}, Exists: {Exists}", fullPath, System.IO.File.Exists(fullPath));
                     if (System.IO.File.Exists(fullPath))
                     {
                         filePath = fullPath;
+                        _logger.LogInformation("File found at: {FilePath}", filePath);
                         break;
                     }
                 }
                 
                 if (filePath == null)
                 {
-                    return NotFound("File not found");
+                    _logger.LogWarning("File not found: {FileName}. Searched in folders: {Folders}", fileName, string.Join(", ", publishFolders));
+                    return NotFound($"File not found: {fileName}");
                 }
                 
                 // Return the file

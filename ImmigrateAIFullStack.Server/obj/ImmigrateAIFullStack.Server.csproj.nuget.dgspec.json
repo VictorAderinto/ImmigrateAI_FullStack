@@ -1,32 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj": {}
+    "C:\\Users\\semil\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj": {
+    "C:\\Users\\semil\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj",
+        "projectUniqueName": "C:\\Users\\semil\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj",
         "projectName": "ImmigrateAIFullStack.Server",
-        "projectPath": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj",
-        "packagesPath": "C:\\Users\\Victor\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Victor\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\obj\\",
+        "projectPath": "C:\\Users\\semil\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\ImmigrateAIFullStack.Server.csproj",
+        "packagesPath": "C:\\Users\\semil\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\semil\\Downloads\\ImmigrateAIFullStack\\ImmigrateAIFullStack.Server\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Victor\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\semil\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -44,8 +37,7 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -101,7 +93,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

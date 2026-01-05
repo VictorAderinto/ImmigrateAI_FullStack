@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ImmigrateAIFullStack.Server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1167346a942912a0f3bb529cc9c32f7215d95e83")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f8193b2443db402a1e8a806a04e89a895305ce76")]
 [assembly: System.Reflection.AssemblyProductAttribute("ImmigrateAIFullStack.Server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ImmigrateAIFullStack.Server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

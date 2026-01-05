@@ -4,13 +4,10 @@ import { useTranslation } from "react-i18next";
 import { getAuthHeaders, isAuthenticated } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
 import AnswersSidebar from "./AnswersSidebar";
-import { useLanguage } from "../contexts/LanguageContext";
-import { translateText, detectLanguage } from "../utils/translationService";
 
 
 const ChatPage: React.FC = () => {
   const { t } = useTranslation();
-  const { language } = useLanguage();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Array<{ sender: string; content: string }>>([]);
   const [input, setInput] = useState("");
@@ -23,26 +20,18 @@ const ChatPage: React.FC = () => {
   const [chatState, setChatState] = useState<any>(null); // Store the chat state
   const [generatedFiles, setGeneratedFiles] = useState<string[]>([]); // Store generated PDF files
   const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar state
-  const [isTranslating, setIsTranslating] = useState(false); // Translation loading state
   
-  // Timer state - calculated based on questions answered
-  const calculateTimeRemaining = () => {
-    const TOTAL_QUESTIONS = 253;
-    const TOTAL_TIME_MINUTES = 45;
-    
-    if (!chatState || chatState.question_index === undefined) {
-      return TOTAL_TIME_MINUTES * 60; // Default 45 minutes in seconds
-    }
-    
-    const questionsAnswered = chatState.question_index + 1; // +1 for 0-based indexing
-    const timeUsedMinutes = questionsAnswered * (TOTAL_TIME_MINUTES / TOTAL_QUESTIONS);
-    const timeLeftMinutes = TOTAL_TIME_MINUTES - timeUsedMinutes;
-    
-    return Math.max(0, Math.floor(timeLeftMinutes * 60)); // Convert to seconds
+  // Progress calculation - percentage based on question index
+  const TOTAL_QUESTIONS = 264; // Total number of questions in the form
+  const calculateProgress = () => {
+    if (!chatState || chatState.question_index === undefined) return 0;
+    const currentQuestionIndex = chatState.question_index;
+    // Calculate percentage: (current question / total questions) * 100
+    const percentage = Math.min(100, Math.round((currentQuestionIndex / TOTAL_QUESTIONS) * 100));
+    return percentage;
   };
   
-  const timeRemaining = calculateTimeRemaining();
-  const timerActive = !isChatComplete && timeRemaining > 0;
+  const progressPercentage = calculateProgress();
 
   // Check authentication on component mount
   useEffect(() => {
@@ -101,24 +90,8 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  // Timer functions - now calculated dynamically based on question_index
-  const handleQuestionAnswered = () => {
-    // Timer is now calculated automatically based on question_index
-    // No need to manually update timer state
-  };
 
-  // Show time up message when timer reaches 0
-  useEffect(() => {
-    if (timeRemaining === 0 && !isChatComplete && messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      if (!lastMessage.content.includes("Time's up")) {
-        setMessages(msgs => [
-          ...msgs,
-          { sender: "AI", content: "⏰ Time's up! The interview session has ended. You can still review and edit your answers, or start a new session." }
-        ]);
-      }
-    }
-  }, [timeRemaining, isChatComplete, messages]);
+  // Progress-based logic - no time limit, just track completion
 
   // Note: Answers are now set directly from initialize response
   // No need for immediate fetchAnswers() call since we have transaction isolation
@@ -169,21 +142,7 @@ const ChatPage: React.FC = () => {
           console.log('Set conversation ID to:', initData.conversation_id);
           setIsChatComplete(initData.done || false);
           setChatState(initData.state); // Store the chat state
-          
-          // Translate initial AI message if not in English
-          let initialReply = initData.reply;
-          if (language !== 'en') {
-            try {
-              initialReply = await translateText(initData.reply, language, 'en');
-              console.log('Translated initial AI message:', initData.reply, '→', initialReply);
-            } catch (error) {
-              console.error('Translation error for initial message:', error);
-              // Use original response if translation fails
-              initialReply = initData.reply;
-            }
-          }
-          
-          setMessages([{ sender: "AI", content: initialReply }]);
+          setMessages([{ sender: "AI", content: initData.reply }]);
           
           // Set answers from initialize response - this is the source of truth
           if (initData.state && initData.state.answers) {
@@ -213,7 +172,6 @@ const ChatPage: React.FC = () => {
     
     const userMsg = { sender: "You", content: input.trim() };
     setMessages((msgs) => [...msgs, userMsg]);
-    const originalInput = input.trim();
     setInput("");
     setLoading(true);
 
@@ -243,38 +201,15 @@ const ChatPage: React.FC = () => {
       } else {
         // Send chat step
         console.log('=== CONVERSATION ID DEBUG - CHAT STEP ===');
-        console.log('Sending chat step - conversation ID:', conversationId, 'user input:', originalInput);
+        console.log('Sending chat step - conversation ID:', conversationId, 'user input:', userMsg.content);
         console.log('Current conversationId state:', conversationId);
-        console.log('Current language:', language);
-        
-        // Translate user input to English if not in English
-        let inputToSend = originalInput;
-        if (language !== 'en') {
-          setIsTranslating(true);
-          try {
-            // Detect the language of user input
-            const detectedLang = await detectLanguage(originalInput);
-            console.log('Detected language:', detectedLang);
-            
-            // If detected language matches selected language (and not English), translate to English
-            if (detectedLang === language) {
-              inputToSend = await translateText(originalInput, 'en', language);
-              console.log('Translated user input:', originalInput, '→', inputToSend);
-            }
-          } catch (error) {
-            console.error('Translation error for user input:', error);
-            // Continue with original input if translation fails
-          } finally {
-            setIsTranslating(false);
-          }
-        }
         
         const chatResponse = await fetch('/api/chat/chat-step', {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({
             conversation_id: conversationId,
-            user_input: inputToSend, // Send translated input
+            user_input: userMsg.content,
             state: chatState // Include the current chat state
           })
         });
@@ -297,30 +232,11 @@ const ChatPage: React.FC = () => {
           setChatState(chatData.state);
         }
         
-        // Translate AI response to user's language if not English
-        let aiReply = chatData.reply;
-        if (language !== 'en') {
-          setIsTranslating(true);
-          try {
-            aiReply = await translateText(chatData.reply, language, 'en');
-            console.log('Translated AI response:', chatData.reply, '→', aiReply);
-          } catch (error) {
-            console.error('Translation error for AI response:', error);
-            // Use original response if translation fails
-            aiReply = chatData.reply;
-          } finally {
-            setIsTranslating(false);
-          }
-        }
-        
         // Add the AI response
         setMessages((msgs) => [
           ...msgs,
-          { sender: "AI", content: aiReply }
+          { sender: "AI", content: chatData.reply }
         ]);
-
-        // Track that a question was answered
-        handleQuestionAnswered();
 
         // Refresh answers after each chat step
         await fetchAnswers();
@@ -332,7 +248,7 @@ const ChatPage: React.FC = () => {
       console.error('Chat error:', error);
       setMessages((msgs) => [
         ...msgs,
-        { sender: "AI", content: t("Sorry, I encountered an error. Please try again.") }
+        { sender: "AI", content: "Sorry, I encountered an error. Please try again." }
       ]);
     } finally {
       setLoading(false);
@@ -380,14 +296,21 @@ const ChatPage: React.FC = () => {
         setGeneratedFiles(result.files || []);
         
         // Show success message with download links
-        const downloadLinks = result.files?.map((file: string) => 
-          `<a href="/api/chat/download-file/${conversationId}/${file}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">${file}</a>`
-        ).join(', ') || 'No files';
-        
-        setMessages((msgs) => [
-          ...msgs,
-          { sender: "AI", content: `✅ Your immigration forms have been generated successfully! Download your forms: ${downloadLinks}` }
-        ]);
+        if (result.files && result.files.length > 0) {
+          const downloadLinks = result.files.map((file: string) => 
+            `<a href="/api/chat/download-file/${conversationId}/${encodeURIComponent(file)}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">${file}</a>`
+          ).join(', ');
+          
+          setMessages((msgs) => [
+            ...msgs,
+            { sender: "AI", content: `✅ Your immigration forms have been generated successfully! Download your forms: ${downloadLinks}` }
+          ]);
+        } else {
+          setMessages((msgs) => [
+            ...msgs,
+            { sender: "AI", content: `⚠️ PDF generation completed, but no files were generated. Please check if the PDF generation service is working correctly.` }
+          ]);
+        }
       } else {
         const errorData = await response.json();
         console.error('PDF generation failed:', errorData);
@@ -442,22 +365,15 @@ const ChatPage: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-3 mt-4 md:mt-0">
-          {/* Timer Display */}
+          {/* Progress Display */}
           <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
             <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            <span className="font-medium">{t("Estimated time remaining:")}</span>
-            {timeRemaining > 0 ? (
-              <>
-                <span className="font-bold text-red-600">
-                  {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
-                </span>
-                <span className="text-gray-500">{t("minutes")}</span>
-              </>
-            ) : (
-              <span className="font-bold text-red-600">{t("Time's up!")}</span>
-            )}
+            <span className="font-medium">{t("Progress:")}</span>
+            <span className="font-bold text-red-600">
+              {progressPercentage}%
+            </span>
           </div>
           
           <div className="flex flex-col items-end gap-2">
@@ -523,7 +439,7 @@ const ChatPage: React.FC = () => {
               </span>
               <div className="bg-gray-50 rounded-lg p-5 text-gray-800 text-base shadow-sm flex items-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                {isTranslating ? "Translating..." : t("Thinking...")}
+                {t("Thinking...")}
               </div>
             </div>
           )}
@@ -539,7 +455,7 @@ const ChatPage: React.FC = () => {
               {generatedFiles.map((file, index) => (
                 <a
                   key={index}
-                  href={`/api/chat/download-file/${conversationId}/${file}`}
+                  href={`/api/chat/download-file/${conversationId}/${encodeURIComponent(file)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 p-3 bg-white border border-green-300 rounded-lg hover:bg-green-50 transition-colors"

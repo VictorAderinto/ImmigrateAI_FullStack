@@ -30,11 +30,6 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddHttpClient<PythonChatbotService>();
 builder.Services.AddScoped<PythonChatbotService>();
 
-// Add Translation Service
-builder.Services.AddMemoryCache();
-builder.Services.AddHttpClient();
-builder.Services.AddScoped<TranslationService>();
-
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

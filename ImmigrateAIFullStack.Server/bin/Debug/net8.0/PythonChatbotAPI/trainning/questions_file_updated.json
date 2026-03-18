@@ -347,7 +347,7 @@
   {
     "position": 69,
     "field": "national_id_expiry_date",
-    "text": "What is the expiry date of your national identity document? (Format: YYYY-MM-DD)"
+    "text": "What is the expiry date of your national identity document? (Format: YYYY-MM-DD) If it does not expire, please enter 2099-12-31"
   },
   {
     "position": 70,

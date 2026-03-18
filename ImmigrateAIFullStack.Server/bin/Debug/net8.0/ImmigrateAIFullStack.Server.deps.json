@@ -11,7 +11,7 @@
           "BCrypt.Net-Next": "4.0.3",
           "Google.Cloud.Translation.V2": "3.4.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "8.0.0",
-          "Microsoft.AspNetCore.SpaProxy": "8.0.22",
+          "Microsoft.AspNetCore.SpaProxy": "8.0.25",
           "Microsoft.EntityFrameworkCore.Design": "9.0.6",
           "Microsoft.EntityFrameworkCore.Sqlite": "9.0.6",
           "Swashbuckle.AspNetCore": "6.6.2"
@@ -131,11 +131,11 @@
           }
         }
       },
-      "Microsoft.AspNetCore.SpaProxy/8.0.22": {
+      "Microsoft.AspNetCore.SpaProxy/8.0.25": {
         "runtime": {
           "lib/net8.0/Microsoft.AspNetCore.SpaProxy.dll": {
-            "assemblyVersion": "8.0.22.0",
-            "fileVersion": "8.0.2225.52808"
+            "assemblyVersion": "8.0.25.0",
+            "fileVersion": "8.0.2526.11225"
           }
         }
       },
@@ -1153,12 +1153,12 @@
       "path": "microsoft.aspnetcore.authentication.jwtbearer/8.0.0",
       "hashPath": "microsoft.aspnetcore.authentication.jwtbearer.8.0.0.nupkg.sha512"
     },
-    "Microsoft.AspNetCore.SpaProxy/8.0.22": {
+    "Microsoft.AspNetCore.SpaProxy/8.0.25": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-CFnPIbLHsuLKKsJNC1wMFaeKvxRfDS8fnVzDxLdCI6kMbHB91tCLOm8+rPpAGV99VJSFNhduLEWx22Zjw30wag==",
-      "path": "microsoft.aspnetcore.spaproxy/8.0.22",
-      "hashPath": "microsoft.aspnetcore.spaproxy.8.0.22.nupkg.sha512"
+      "sha512": "sha512-jDv9gydWXVRAMtphfpBJloNDwUED8t01RJEs2HSpguv+6an/VdXllo7FRMkbvHdyL7I3J2hmbEQBg/XIrtZGWA==",
+      "path": "microsoft.aspnetcore.spaproxy/8.0.25",
+      "hashPath": "microsoft.aspnetcore.spaproxy.8.0.25.nupkg.sha512"
     },
     "Microsoft.Bcl.AsyncInterfaces/7.0.0": {
       "type": "package",

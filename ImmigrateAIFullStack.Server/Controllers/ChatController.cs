@@ -45,19 +45,31 @@ namespace ImmigrateAIFullStack.Server.Controllers
                 _logger.LogInformation("User ID: {UserId}", userId);
                 _logger.LogInformation("Request timestamp: {Timestamp}", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"));
                 
-                // Check for existing incomplete conversation
+                // Check for existing conversation (completed or not, since user represents 1 application)
                 // Prefer conversation with most answers (progress), then newest by CreatedAt
                 var existingConversation = await _context.Conversations
-                    .Where(c => c.UserId == userId && !c.IsCompleted)
+                    .Where(c => c.UserId == userId)
                     .OrderByDescending(c => c.Answers != "{}" ? 1 : 0) // Prefer conversations with answers
                     .ThenByDescending(c => c.CreatedAt) // Then prefer newest
                     .FirstOrDefaultAsync();
                 
                 if (existingConversation != null)
                 {
-                    _logger.LogInformation("Found existing incomplete conversation: {ConversationId}", existingConversation.ConversationID);
+                    _logger.LogInformation("Found existing conversation: {ConversationId}, IsCompleted: {IsCompleted}", existingConversation.ConversationID, existingConversation.IsCompleted);
                     // Get the next question for existing conversation
                     var currentState = existingConversation.GetState();
+                    
+                    if (existingConversation.IsCompleted)
+                    {
+                        // Return immediately without calling Python
+                        return Ok(new { 
+                            conversation_id = existingConversation.ConversationID,
+                            reply = "✅ Interview completed! Your forms are ready for download.",
+                            state = JsonSerializer.SerializeToElement(currentState),
+                            done = true
+                        });
+                    }
+
                     var stateJson = JsonSerializer.SerializeToElement(currentState);
                     
                     // Call Python service to get next question with empty input
@@ -506,7 +518,8 @@ Let's get started! 👇
                 var userId = GetCurrentUserId();
                 
                 var conversation = await _context.Conversations
-                    .Where(c => c.UserId == userId && !c.IsCompleted)
+                    .Where(c => c.UserId == userId)
+                    .OrderByDescending(c => c.CreatedAt)
                     .FirstOrDefaultAsync();
                 
                 if (conversation == null)
@@ -537,7 +550,8 @@ Let's get started! 👇
                 _logger.LogInformation("User ID: {UserId}", userId);
                 
                 var conversation = await _context.Conversations
-                    .Where(c => c.UserId == userId && !c.IsCompleted)
+                    .Where(c => c.UserId == userId)
+                    .OrderByDescending(c => c.CreatedAt)
                     .FirstOrDefaultAsync();
                 
                 if (conversation == null)

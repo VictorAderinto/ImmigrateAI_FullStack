@@ -479,23 +479,29 @@ const ChatPage: React.FC = () => {
             <button type="button" className="p-2 text-gray-400 hover:text-red-500 transition" disabled>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 002.828 2.828l6.586-6.586a2 2 0 00-2.828-2.828z" /></svg>
             </button>
-            <input
-              type="text"
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base"
+            <textarea
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base resize-none"
+              rows={1}
+              style={{ minHeight: '48px', maxHeight: '120px' }}
               placeholder={t("Type your message... (Shift+Enter for new line)")}
               value={input}
-              onChange={e => setInput(e.target.value)}
-              disabled={loading}
+              onChange={e => {
+                setInput(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+              }}
+              disabled={loading || isChatComplete}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
                   handleSend(e as any);
                 }
               }}
             />
             <button
               type="submit"
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${input.trim() && !loading ? "bg-red-600 text-white hover:bg-red-700" : "bg-red-300 text-white cursor-not-allowed"}`}
-              disabled={!input.trim() || loading}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${input.trim() && !loading && !isChatComplete ? "bg-red-600 text-white hover:bg-red-700" : "bg-red-300 text-white cursor-not-allowed"}`}
+              disabled={!input.trim() || loading || isChatComplete}
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               {t("Send")}
